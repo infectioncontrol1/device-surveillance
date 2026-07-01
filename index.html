@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Device Surveillance – Metropolitan Hospital</title>
+<style>
+  :root {
+    --blue: #185FA5; --blue-light: #E6F1FB; --blue-mid: #378ADD;
+    --green: #3B6D11; --green-light: #EAF3DE; --green-mid: #639922;
+    --gray: #5F5E5A; --gray-light: #F1EFE8; --gray-mid: #888780;
+    --amber: #854F0B; --amber-light: #FAEEDA; --amber-mid: #EF9F27;
+    --red: #A32D2D; --red-light: #FCEBEB;
+    --success: #3B6D11; --success-light: #EAF3DE;
+    --border: #e0ddd6; --bg: #f8f7f4; --white: #ffffff;
+    --text: #2C2C2A; --text-secondary: #5F5E5A; --text-hint: #888780;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .app-header { background: var(--white); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+  .app-logo { width: 36px; height: 36px; background: var(--blue-light); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .app-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .app-sub { font-size: 11px; color: var(--text-secondary); }
+
+  /* TAB NAV */
+  .tabs-wrap { background: var(--white); border-bottom: 1px solid var(--border); }
+  .tab-row { display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid var(--border); }
+  .tab-row:last-child { border-bottom: none; }
+  .tab-row.two { grid-template-columns: repeat(2,1fr); }
+  .tab-btn { padding: 10px 4px; font-size: 12px; font-weight: 500; color: var(--text-secondary); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; text-align: center; line-height: 1.4; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: all 0.15s; width: 100%; }
+  .tab-btn i { font-size: 16px; }
+  .tab-btn.active-cvc { color: var(--blue); border-bottom-color: var(--blue); background: var(--blue-light); }
+  .tab-btn.active-uti { color: var(--green); border-bottom-color: var(--green); background: var(--green-light); }
+  .tab-btn.active-edit { color: var(--amber); border-bottom-color: var(--amber); background: var(--amber-light); }
+  .tab-btn.active-dup { color: var(--red); border-bottom-color: var(--red); background: var(--red-light); }
+  .row-entry { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; }
+  .del-btn { width: 100%; padding: 8px; background: var(--red); color: white; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .info-box { border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 10px; font-size: 13px; font-weight: 600; }
+  .info-warn { background: var(--amber-light); border: 1px solid var(--amber-mid); color: var(--amber); }
+  .info-ok { background: var(--green-light); border: 1px solid var(--green-mid); color: var(--green); }
+
+  /* CONTENT */
+  .tab-content { display: none; padding: 14px; max-width: 480px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+
+  /* SEARCH BAR */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .search-bar input { flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; color: var(--text); background: var(--white); }
+  .search-bar input:focus { outline: none; border-color: var(--blue-mid); }
+  .btn-search { padding: 10px 16px; border-radius: var(--radius-sm); border: none; font-size: 13px; font-weight: 600; cursor: pointer; color: white; }
+  .btn-search.cvc { background: var(--blue); }
+  .btn-search.uti { background: var(--green); }
+
+  /* PATIENT PREVIEW */
+  .patient-preview { background: var(--blue-light); border: 1px solid #B5D4F4; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; display: none; }
+  .patient-preview.uti-color { background: var(--green-light); border-color: #C0DD97; }
+  .patient-preview.visible { display: block; }
+  .preview-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; }
+  .preview-row:last-child { margin-bottom: 0; }
+  .preview-label { color: var(--text-secondary); }
+  .preview-value { font-weight: 600; color: var(--text); }
+  .preview-ka { font-size: 16px; font-weight: 700; color: var(--blue); }
+  .preview-ka.uti { color: var(--green); }
+
+  /* FIELDS */
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 14px; color: var(--text);
+    background: var(--white); appearance: none; -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--blue-mid); box-shadow: 0 0 0 3px rgba(55,138,221,0.1); }
+  .field textarea { resize: none; min-height: 70px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* BADGE SELECTOR */
+  .badge-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--white); color: var(--text-secondary); transition: all 0.12s; user-select: none; }
+  .badge:active { transform: scale(0.96); }
+  .badge.sel-blue { background: var(--blue-light); border-color: var(--blue-mid); color: var(--blue); }
+  .badge.sel-green { background: var(--green-light); border-color: var(--green-mid); color: var(--green); }
+  .badge.sel-red { background: var(--red-light); border-color: #F09595; color: var(--red); }
+
+  /* DAYS COUNTER */
+  .days-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--amber-light); border: 1px solid var(--amber-mid); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 600; color: var(--amber); margin-top: 6px; }
+
+  /* SUBMIT */
+  .btn-submit { width: 100%; padding: 13px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 600; cursor: pointer; color: white; margin-top: 4px; transition: opacity 0.15s; }
+  .btn-submit:active { opacity: 0.85; }
+  .btn-submit.cvc { background: var(--blue); }
+  .btn-submit.uti { background: var(--green); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #2C2C2A; color: white; padding: 11px 20px; border-radius: 24px; font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.3s; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--red); }
+
+  /* LOADING */
+  .loading { display: none; text-align: center; padding: 20px; color: var(--text-secondary); font-size: 13px; }
+  .loading.visible { display: block; }
+  .spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--blue-mid); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* CONFIG SCREEN */
+  .config-screen { padding: 20px; max-width: 480px; margin: 0 auto; }
+  .config-screen h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .config-screen p { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6; }
+  .step { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue-light); color: var(--blue); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+  .step-text code { background: var(--gray-light); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+  .config-input-row { display: flex; gap: 8px; margin-top: 16px; }
+  .config-input-row input { flex: 1; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; }
+  .btn-save-config { padding: 10px 20px; background: var(--blue); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  .not-found { background: var(--red-light); border: 1px solid #F09595; border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; color: var(--red); margin-bottom: 12px; display: none; }
+  .not-found.visible { display: block; }
+
+  select option { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="config-view" style="display:none">
+  <div class="app-header">
+    <div class="app-logo">⚙️</div>
+    <div><div class="app-title">Ρύθμιση σύνδεσης</div><div class="app-sub">Metropolitan Hospital</div></div>
+  </div>
+  <div class="config-screen">
+    <h2>Σύνδεση με Google Sheets</h2>
+    <p>Ακολούθησε τα παρακάτω βήματα μία φορά για να συνδέσεις το app με το Google Sheets σου.</p>
+    <div class="step"><div class="step-num">1</div><div class="step-text">Άνοιξε το Google Sheet για CVC (ή δημιούργησε νέο). Αντίγραψε το ID από το URL:<br><code>docs.google.com/spreadsheets/d/<b>ΤΟ_ID_ΕΔΩ</b>/edit</code></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Στο Sheet: <b>Extensions → Apps Script</b>. Επικόλλησε το περιεχόμενο του αρχείου <code>Code.gs</code> που σου δόθηκε και κάνε Deploy → New deployment → Web app (Anyone).</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Αντίγραψε το Web App URL που εμφανίστηκε μετά το Deploy και επικόλλησέ το παρακάτω.</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-text">Κάνε την ίδια διαδικασία για το UTI Sheet (ή χρησιμοποίησε το ίδιο Script με 2 sheets).</div></div>
+    <label style="font-size:13px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:6px; margin-top:16px;">Apps Script Web App URL (CVC)</label>
+    <input id="cfg-cvc-url" type="url" placeholder="https://script.google.com/macros/s/..." style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; margin-bottom:10px;">
+    <label style="font-size:13px; font-weight:500; color:var(--text-secondary); display:block; margin-bottom:6px;">Apps Script Web App URL (UTI/Foley)</label>
+    <input id="cfg-uti-url" type="url" placeholder="https://script.google.com/macros/s/..." style="width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; margin-bottom:16px;">
+    <button class="btn-save-config" onclick="saveConfig()" style="width:100%;">Αποθήκευση & Έναρξη</button>
+  </div>
+</div>
+
+<div id="main-view" style="display:none">
+  <div class="app-header">
+    <div class="app-logo">🏥</div>
+    <div style="flex:1"><div class="app-title">Device Surveillance</div><div class="app-sub">Metropolitan Hospital</div></div>
+    <button onclick="showConfig()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-hint);">⚙️</button>
+  </div>
+
+  <div class="tabs-wrap">
+    <div class="tab-row">
+      <button class="tab-btn active-cvc" onclick="switchTab('cvc-new',this)"><i class="ti ti-needle" aria-hidden="true"></i>ΚΦΚ Νέο</button>
+      <button class="tab-btn" onclick="switchTab('cvc-remove',this)"><i class="ti ti-scissors" aria-hidden="true"></i>ΚΦΚ Αφαίρεση</button>
+      <button class="tab-btn" onclick="switchTab('cvc-culture',this)"><i class="ti ti-flask" aria-hidden="true"></i>ΚΦΚ Καλλιέργεια</button>
+    </div>
+    <div class="tab-row">
+      <button class="tab-btn" onclick="switchTab('uti-new',this)"><i class="ti ti-droplet" aria-hidden="true"></i>Foley Νέο</button>
+      <button class="tab-btn" onclick="switchTab('uti-remove',this)"><i class="ti ti-scissors" aria-hidden="true"></i>Foley Αφαίρεση</button>
+      <button class="tab-btn" onclick="switchTab('uti-culture',this)"><i class="ti ti-flask" aria-hidden="true"></i>Foley Καλλιέργεια</button>
+    </div>
+    <div class="tab-row two">
+      <button class="tab-btn" onclick="switchTab('edit',this)"><i class="ti ti-edit" aria-hidden="true"></i>Διόρθωση</button>
+      <button class="tab-btn" onclick="switchTab('check',this)"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Έλεγχος Διπλοεγγραφής</button>
+    </div>
+  </div>
+
+  <!-- ============ CVC NEW ============ -->
+  <div id="tab-cvc-new" class="tab-content active">
+    <div class="card">
+      <div class="card-title">Στοιχεία ασθενή</div>
+      <div class="field-row">
+        <div class="field"><label>ΚΑ *</label><input type="number" id="cn-ka" placeholder="π.χ. 195581"></div>
+        <div class="field"><label>Τμήμα *</label><select id="cn-tmima"><option value="">— επιλογή —</option><option>2Α</option><option>3Α</option><option>4Α</option><option>5Α</option><option>2Β</option><option>3Β</option><option>4Β</option><option>ΜΕΘΧ</option><option>ΜΕΘΚΑ</option></select></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Στοιχεία καθετήρα</div>
+      <div class="field"><label>Είδος *</label>
+        <div class="badge-group" id="cn-eidos">
+          <span class="badge" data-val="ΚΦΚ - 3 αυλών">ΚΦΚ 3 αυλών</span>
+          <span class="badge" data-val="ΚΦΚ - 2 αυλών">ΚΦΚ 2 αυλών</span>
+          <span class="badge" data-val="Picc">PICC</span>
+          <span class="badge" data-val="Άλλο">Άλλο</span>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>Σημείο 1 (Θέση)</label>
+        <div class="badge-group" id="cn-simeio1">
+          <span class="badge" data-val="Σφαγίτιδα">Σφαγίτιδα</span>
+          <span class="badge" data-val="Υποκλείδιος">Υποκλείδιος</span>
+          <span class="badge" data-val="Μηριαία">Μηριαία</span>
+          <span class="badge" data-val="Βασιλική">Βασιλική</span>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>Σημείο 2 (Πλευρά)</label>
+        <div class="badge-group" id="cn-simeio2">
+          <span class="badge" data-val="ΔΕ">ΔΕ</span>
+          <span class="badge" data-val="ΑΡ">ΑΡ</span>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px"><label>Ημ. Τοποθέτησης *</label><input type="date" id="cn-date"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Σημειώσεις</div>
+      <div class="field"><textarea id="cn-notes" placeholder="Προαιρετικά..."></textarea></div>
+    </div>
+    <button class="btn-submit cvc" onclick="submitCvcNew()">💾 Αποθήκευση νέου ΚΦΚ/PICC</button>
+  </div>
+
+  <!-- ============ CVC REMOVE ============ -->
+  <div id="tab-cvc-remove" class="tab-content">
+    <div class="card">
+      <div class="card-title">Αναζήτηση ασθενή</div>
+      <div class="search-bar">
+        <input type="number" id="cr-ka" placeholder="Εισάγετε ΚΑ...">
+        <button class="btn-search cvc" onclick="searchPatient('cvc','remove')">Αναζήτηση</button>
+      </div>
+      <div class="loading" id="cr-loading"><div class="spinner"></div>Αναζήτηση...</div>
+      <div class="not-found" id="cr-notfound">⚠️ Δεν βρέθηκε ενεργός καθετήρας για αυτόν τον ΚΑ.</div>
+      <div class="patient-preview" id="cr-preview">
+        <div class="preview-row"><span class="preview-label">ΚΑ</span><span class="preview-value preview-ka" id="cr-prev-ka"></span></div>
+        <div class="preview-row"><span class="preview-label">Τμήμα</span><span class="preview-value" id="cr-prev-tmima"></span></div>
+        <div class="preview-row"><span class="preview-label">Είδος</span><span class="preview-value" id="cr-prev-eidos"></span></div>
+        <div class="preview-row"><span class="preview-label">Θέση</span><span class="preview-value" id="cr-prev-thesi"></span></div>
+        <div class="preview-row"><span class="preview-label">Τοποθέτηση</span><span class="preview-value" id="cr-prev-date"></span></div>
+      </div>
+    </div>
+    <div class="card" id="cr-form" style="display:none">
+      <div class="card-title">Ημερομηνία αφαίρεσης</div>
+      <div class="field"><input type="date" id="cr-date"></div>
+      <div class="days-pill" id="cr-days" style="display:none">⏱ <span id="cr-days-text"></span> ημέρες παραμονής</div>
+    </div>
+    <button class="btn-submit cvc" id="cr-submit" style="display:none" onclick="submitCvcRemove()">💾 Καταχώρηση αφαίρεσης</button>
+  </div>
+
+  <!-- ============ CVC CULTURE ============ -->
+  <div id="tab-cvc-culture" class="tab-content">
+    <div class="card">
+      <div class="card-title">Αναζήτηση ασθενή</div>
+      <div class="search-bar">
+        <input type="number" id="cc-ka" placeholder="Εισάγετε ΚΑ...">
+        <button class="btn-search cvc" onclick="searchPatient('cvc','culture')">Αναζήτηση</button>
+      </div>
+      <div class="loading" id="cc-loading"><div class="spinner"></div>Αναζήτηση...</div>
+      <div class="not-found" id="cc-notfound">⚠️ Δεν βρέθηκε εγγραφή για αυτόν τον ΚΑ.</div>
+      <div class="patient-preview" id="cc-preview">
+        <div class="preview-row"><span class="preview-label">ΚΑ</span><span class="preview-value preview-ka" id="cc-prev-ka"></span></div>
+        <div class="preview-row"><span class="preview-label">Τμήμα</span><span class="preview-value" id="cc-prev-tmima"></span></div>
+        <div class="preview-row"><span class="preview-label">Είδος</span><span class="preview-value" id="cc-prev-eidos"></span></div>
+        <div class="preview-row"><span class="preview-label">Τοποθέτηση</span><span class="preview-value" id="cc-prev-date"></span></div>
+      </div>
+    </div>
+    <div class="card" id="cc-form" style="display:none">
+      <div class="card-title">Καλλιέργεια</div>
+      <div class="field"><label>Είδος δείγματος *</label>
+        <div class="badge-group" id="cc-deigma">
+          <span class="badge" data-val="Αίμα">🩸 Αίμα</span>
+          <span class="badge" data-val="Άκρο">Άκρο καθετήρα</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Ημ/νία καλλιέργειας *</label><input type="date" id="cc-date"></div>
+        <div class="field"><label>Αποτέλεσμα *</label><input type="text" id="cc-result" placeholder="π.χ. Α, MRSA..."></div>
+      </div>
+      <div class="field"><label>MDRO;</label>
+        <div class="badge-group" id="cc-mdro">
+          <span class="badge" data-val="ΝΑΙ">ΝΑΙ</span>
+          <span class="badge" data-val="ΟΧΙ">ΟΧΙ</span>
+        </div>
+      </div>
+      <div class="field"><label>Σημειώσεις</label><input type="text" id="cc-notes" placeholder="Προαιρετικά..."></div>
+    </div>
+    <button class="btn-submit cvc" id="cc-submit" style="display:none" onclick="submitCvcCulture()">💾 Αποθήκευση καλλιέργειας</button>
+  </div>
+
+  <!-- ============ UTI NEW ============ -->
+  <div id="tab-uti-new" class="tab-content">
+    <div class="card">
+      <div class="card-title">Στοιχεία ασθενή</div>
+      <div class="field-row">
+        <div class="field"><label>ΚΑ *</label><input type="number" id="un-ka" placeholder="π.χ. 331256"></div>
+        <div class="field"><label>Τμήμα *</label><select id="un-tmima"><option value="">— επιλογή —</option><option>2Α</option><option>3Α</option><option>4Α</option><option>5Α</option><option>2Β</option><option>3Β</option><option>4Β</option><option>ΜΕΘΧ</option><option>ΜΕΘΚΑ</option></select></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ουροκαθετήρας</div>
+      <div class="field"><label>Ημ. Τοποθέτησης *</label><input type="date" id="un-date"></div>
+      <div class="field"><label>Σημειώσεις</label><textarea id="un-notes" placeholder="Προαιρετικά..."></textarea></div>
+    </div>
+    <button class="btn-submit uti" onclick="submitUtiNew()">💾 Αποθήκευση νέου Foley</button>
+  </div>
+
+  <!-- ============ UTI REMOVE ============ -->
+  <div id="tab-uti-remove" class="tab-content">
+    <div class="card">
+      <div class="card-title">Αναζήτηση ασθενή</div>
+      <div class="search-bar">
+        <input type="number" id="ur-ka" placeholder="Εισάγετε ΚΑ...">
+        <button class="btn-search uti" onclick="searchPatient('uti','remove')">Αναζήτηση</button>
+      </div>
+      <div class="loading" id="ur-loading"><div class="spinner"></div>Αναζήτηση...</div>
+      <div class="not-found" id="ur-notfound">⚠️ Δεν βρέθηκε ενεργός καθετήρας για αυτόν τον ΚΑ.</div>
+      <div class="patient-preview uti-color" id="ur-preview">
+        <div class="preview-row"><span class="preview-label">ΚΑ</span><span class="preview-value preview-ka uti" id="ur-prev-ka"></span></div>
+        <div class="preview-row"><span class="preview-label">Τμήμα</span><span class="preview-value" id="ur-prev-tmima"></span></div>
+        <div class="preview-row"><span class="preview-label">Τοποθέτηση</span><span class="preview-value" id="ur-prev-date"></span></div>
+      </div>
+    </div>
+    <div class="card" id="ur-form" style="display:none">
+      <div class="card-title">Ημερομηνία αφαίρεσης</div>
+      <div class="field"><input type="date" id="ur-date"></div>
+      <div class="days-pill" id="ur-days" style="display:none">⏱ <span id="ur-days-text"></span> ημέρες παραμονής</div>
+    </div>
+    <button class="btn-submit uti" id="ur-submit" style="display:none" onclick="submitUtiRemove()">💾 Καταχώρηση αφαίρεσης</button>
+  </div>
+
+  <!-- ============ UTI CULTURE ============ -->
+  <div id="tab-uti-culture" class="tab-content">
+    <div class="card">
+      <div class="card-title">Αναζήτηση ασθενή</div>
+      <div class="search-bar">
+        <input type="number" id="uc-ka" placeholder="Εισάγετε ΚΑ...">
+        <button class="btn-search uti" onclick="searchPatient('uti','culture')">Αναζήτηση</button>
+      </div>
+      <div class="loading" id="uc-loading"><div class="spinner"></div>Αναζήτηση...</div>
+      <div class="not-found" id="uc-notfound">⚠️ Δεν βρέθηκε εγγραφή για αυτόν τον ΚΑ.</div>
+      <div class="patient-preview uti-color" id="uc-preview">
+        <div class="preview-row"><span class="preview-label">ΚΑ</span><span class="preview-value preview-ka uti" id="uc-prev-ka"></span></div>
+        <div class="preview-row"><span class="preview-label">Τμήμα</span><span class="preview-value" id="uc-prev-tmima"></span></div>
+        <div class="preview-row"><span class="preview-label">Τοποθέτηση</span><span class="preview-value" id="uc-prev-date"></span></div>
+      </div>
+    </div>
+    <div class="card" id="uc-form" style="display:none">
+      <div class="card-title">Καλλιέργεια ούρων</div>
+      <div class="field-row">
+        <div class="field"><label>Ημ/νία καλλιέργειας *</label><input type="date" id="uc-date"></div>
+        <div class="field"><label>Αποτέλεσμα (>10⁵) *</label><input type="text" id="uc-result" placeholder="μικροοργανισμός..."></div>
+      </div>
+      <div class="field"><label>MDRO;</label>
+        <div class="badge-group" id="uc-mdro">
+          <span class="badge" data-val="ΝΑΙ">ΝΑΙ</span>
+          <span class="badge" data-val="ΟΧΙ">ΟΧΙ</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-submit uti" id="uc-submit" style="display:none" onclick="submitUtiCulture()">💾 Αποθήκευση καλλιέργειας</button>
+  </div>
+
+  <div id="tab-edit" class="tab-content">
+    <div class="card">
+      <div class="card-title">Διόρθωση καταχώρησης</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Ψάξε ΚΑ και επίλεξε ποια γραμμή να διαγράψεις.</div>
+      <div class="field"><label>Τύπος</label>
+        <div class="badge-group" id="edit-type">
+          <span class="badge sel-blue" data-val="cvc">ΚΦΚ/PICC</span>
+          <span class="badge" data-val="uti">Foley</span>
+        </div>
+      </div>
+      <div class="search-bar" style="margin-top:10px">
+        <input type="number" id="edit-ka" placeholder="Εισάγετε ΚΑ...">
+        <button class="btn-search cvc" onclick="searchEdit()">Αναζήτηση</button>
+      </div>
+      <div class="loading" id="edit-loading"><div class="spinner"></div>Αναζήτηση...</div>
+      <div class="not-found" id="edit-notfound">⚠️ Δεν βρέθηκε εγγραφή.</div>
+    </div>
+    <div id="edit-rows-container"></div>
+  </div>
+
+  <div id="tab-check" class="tab-content">
+    <div class="card">
+      <div class="card-title">Έλεγχος διπλοεγγραφής</div>
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Πριν καταχωρήσεις νέο, έλεγξε αν υπάρχει ήδη.</div>
+      <div class="field"><label>Τύπος</label>
+        <div class="badge-group" id="check-type">
+          <span class="badge sel-blue" data-val="cvc">ΚΦΚ/PICC</span>
+          <span class="badge" data-val="uti">Foley</span>
+        </div>
+      </div>
+      <div class="search-bar" style="margin-top:10px">
+        <input type="number" id="check-ka" placeholder="Εισάγετε ΚΑ...">
+        <button class="btn-search uti" onclick="checkDuplicate()">Έλεγχος</button>
+      </div>
+      <div class="loading" id="check-loading"><div class="spinner"></div>Αναζήτηση...</div>
+      <div id="check-result"></div>
+    </div>
+  </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TMIMATA = ['2Α','3Α','4Α','5Α','2Β','3Β','4Β','ΜΕΘΧ','ΜΕΘΚΑ'];
+let cvcUrl = '', utiUrl = '';
+let currentCvcRecord = null, currentUtiRecord = null;
+
+function init() {
+  cvcUrl = localStorage.getItem('cvc_url') || '';
+  utiUrl = localStorage.getItem('uti_url') || '';
+  if (!cvcUrl || !utiUrl) {
+    document.getElementById('config-view').style.display = 'block';
+  } else {
+    document.getElementById('main-view').style.display = 'block';
+    setDefaultDates();
+    setupBadges();
+    setupDateListeners();
+  }
+}
+
+function saveConfig() {
+  const c = document.getElementById('cfg-cvc-url').value.trim();
+  const u = document.getElementById('cfg-uti-url').value.trim();
+  if (!c || !u) { showToast('Συμπλήρωσε και τα δύο URLs', 'error'); return; }
+  localStorage.setItem('cvc_url', c);
+  localStorage.setItem('uti_url', u);
+  cvcUrl = c; utiUrl = u;
+  document.getElementById('config-view').style.display = 'none';
+  document.getElementById('main-view').style.display = 'block';
+  setDefaultDates();
+  setupBadges();
+  setupDateListeners();
+  showToast('✅ Ρυθμίσεις αποθηκεύτηκαν!', 'success');
+}
+
+function showConfig() {
+  document.getElementById('main-view').style.display = 'none';
+  document.getElementById('config-view').style.display = 'block';
+  document.getElementById('cfg-cvc-url').value = cvcUrl;
+  document.getElementById('cfg-uti-url').value = utiUrl;
+}
+
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  ['cn-date','un-date','cr-date','ur-date','cc-date','uc-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = today;
+  });
+}
+
+function setupBadges() {
+  document.querySelectorAll('.badge-group').forEach(group => {
+    const isMulti = group.id === 'uc-sympt-type';
+    group.querySelectorAll('.badge').forEach(badge => {
+      badge.addEventListener('click', function() {
+        const isUti = this.closest('#tab-uti-new, #tab-uti-remove, #tab-uti-culture') !== null;
+        const selClass = isUti ? 'sel-green' : 'sel-blue';
+        if (!isMulti) group.querySelectorAll('.badge').forEach(b => b.classList.remove('sel-blue','sel-green','sel-red'));
+        this.classList.toggle(selClass);
+        if (group.id === 'uc-sympt-yn') {
+          document.getElementById('uc-sympt-detail').style.display = this.dataset.val === 'ΝΑΙ' && this.classList.contains('sel-green') ? 'block' : 'none';
+        }
+      });
+    });
+  });
+}
+
+function setupDateListeners() {
+  document.getElementById('cr-date').addEventListener('input', function() {
+    const placement = currentCvcRecord ? currentCvcRecord.placement : null;
+    if (placement && this.value) calcDays(placement, this.value, 'cr-days', 'cr-days-text');
+  });
+  document.getElementById('ur-date').addEventListener('input', function() {
+    const placement = currentUtiRecord ? currentUtiRecord.placement : null;
+    if (placement && this.value) calcDays(placement, this.value, 'ur-days', 'ur-days-text');
+  });
+}
+
+function calcDays(dateFrom, dateTo, pillId, textId) {
+  const d1 = new Date(dateFrom), d2 = new Date(dateTo);
+  const days = Math.round((d2 - d1) / 86400000);
+  if (days >= 0) {
+    document.getElementById(pillId).style.display = 'inline-flex';
+    document.getElementById(textId).textContent = days;
+  }
+}
+
+function getBadgeVal(groupId) {
+  const sel = document.querySelector(`#${groupId} .badge.sel-blue, #${groupId} .badge.sel-green`);
+  return sel ? sel.dataset.val : '';
+}
+
+function getMultiBadgeVals(groupId) {
+  return Array.from(document.querySelectorAll(`#${groupId} .badge.sel-green, #${groupId} .badge.sel-blue`)).map(b => b.dataset.val).join(', ');
+}
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
+  document.getElementById('tab-' + tabId).classList.add('active');
+  let cls = 'active-uti';
+  if (tabId.startsWith('cvc')) cls = 'active-cvc';
+  else if (tabId === 'edit') cls = 'active-edit';
+  else if (tabId === 'check') cls = 'active-dup';
+  btn.className = 'tab-btn ' + cls;
+}
+
+async function callScript(url, data) {
+  const payload = encodeURIComponent(JSON.stringify(data));
+  const resp = await fetch(url + '?payload=' + payload, { method: 'GET', redirect: 'follow' });
+  const text = await resp.text();
+  const clean = text.replace(/^[^{[]*/, '').replace(/[^}\]]*$/, '');
+  return JSON.parse(clean);
+}
+
+async function searchPatient(type, action) {
+  const kaId = `${type[0]}${action[0]}-ka`;
+  const ka = document.getElementById(kaId).value.trim();
+  if (!ka) { showToast('Εισάγετε ΚΑ', 'error'); return; }
+
+  const loadId = `${type[0]}${action[0]}-loading`;
+  const nfId = `${type[0]}${action[0]}-notfound`;
+  const prevId = `${type[0]}${action[0]}-preview`;
+  const formId = `${type[0]}${action[0]}-form`;
+  const submitId = `${type[0]}${action[0]}-submit`;
+
+  document.getElementById(loadId).classList.add('visible');
+  document.getElementById(nfId).classList.remove('visible');
+  document.getElementById(prevId).classList.remove('visible');
+  if (formId && document.getElementById(formId)) document.getElementById(formId).style.display = 'none';
+  if (submitId && document.getElementById(submitId)) document.getElementById(submitId).style.display = 'none';
+
+  const url = type === 'cvc' ? cvcUrl : utiUrl;
+  try {
+    const res = await callScript(url, { action: 'search', ka });
+    document.getElementById(loadId).classList.remove('visible');
+    if (!res.found) {
+      document.getElementById(nfId).classList.add('visible');
+      return;
+    }
+    const rec = res.record;
+    if (type === 'cvc') currentCvcRecord = rec;
+    else currentUtiRecord = rec;
+
+    if (type === 'cvc') {
+      document.getElementById(`${type[0]}${action[0]}-prev-ka`).textContent = rec.ka;
+      document.getElementById(`${type[0]}${action[0]}-prev-tmima`).textContent = rec.tmima;
+      if (action === 'remove' || action === 'culture') {
+        const eidosEl = document.getElementById(`${type[0]}${action[0]}-prev-eidos`);
+        const thesiEl = document.getElementById(`${type[0]}${action[0]}-prev-thesi`);
+        const dateEl = document.getElementById(`${type[0]}${action[0]}-prev-date`);
+        if (eidosEl) eidosEl.textContent = rec.eidos;
+        if (thesiEl) thesiEl.textContent = `${rec.simeio1} ${rec.simeio2}`.trim();
+        if (dateEl) dateEl.textContent = formatDate(rec.placement);
+      }
+    } else {
+      document.getElementById(`${type[0]}${action[0]}-prev-ka`).textContent = rec.ka;
+      document.getElementById(`${type[0]}${action[0]}-prev-tmima`).textContent = rec.tmima;
+      document.getElementById(`${type[0]}${action[0]}-prev-date`).textContent = formatDate(rec.placement);
+    }
+
+    document.getElementById(prevId).classList.add('visible');
+    if (formId && document.getElementById(formId)) document.getElementById(formId).style.display = 'block';
+
+    if (submitId && document.getElementById(submitId)) document.getElementById(submitId).style.display = 'block';
+  } catch(e) {
+    document.getElementById(loadId).classList.remove('visible');
+    showToast('Σφάλμα σύνδεσης', 'error');
+  }
+}
+
+function formatDate(serial) {
+  if (!serial) return '—';
+  if (typeof serial === 'string') {
+    const d = new Date(serial);
+    if (!isNaN(d)) return d.toLocaleDateString('el-GR');
+    return serial;
+  }
+  const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  return d.toLocaleDateString('el-GR');
+}
+
+async function submitCvcNew() {
+  const ka = document.getElementById('cn-ka').value.trim();
+  const tmima = document.getElementById('cn-tmima').value;
+  const eidos = getBadgeVal('cn-eidos');
+  const date = document.getElementById('cn-date').value;
+  if (!ka || !tmima || !eidos || !date) { showToast('Συμπλήρωσε τα υποχρεωτικά πεδία', 'error'); return; }
+  const data = { action: 'newCvc', ka, tmima, eidos, simeio1: getBadgeVal('cn-simeio1'), simeio2: getBadgeVal('cn-simeio2'), placement: date, notes: document.getElementById('cn-notes').value };
+  await submit(cvcUrl, data, 'cn');
+}
+
+async function submitCvcRemove() {
+  const date = document.getElementById('cr-date').value;
+  if (!date || !currentCvcRecord) { showToast('Επιλέξτε ημερομηνία', 'error'); return; }
+  const d1 = new Date(currentCvcRecord.placement || ''), d2 = new Date(date);
+  const days = Math.round((d2 - d1) / 86400000);
+  const data = { action: 'removeCvc', ka: currentCvcRecord.ka, removal: date, days };
+  await submit(cvcUrl, data, 'cr');
+}
+
+async function submitCvcCulture() {
+  const deigma = getBadgeVal('cc-deigma');
+  const date = document.getElementById('cc-date').value;
+  const result = document.getElementById('cc-result').value.trim();
+  if (!deigma || !date || !result) { showToast('Συμπλήρωσε τα υποχρεωτικά πεδία', 'error'); return; }
+  const data = { action: 'cultureCvc', ka: currentCvcRecord.ka, tmima: currentCvcRecord.tmima, eidos: currentCvcRecord.eidos, simeio1: currentCvcRecord.simeio1, simeio2: currentCvcRecord.simeio2, placement: currentCvcRecord.placement, removal: currentCvcRecord.removal, deigma, cultureDate: date, result, mdro: getBadgeVal('cc-mdro'), notes: document.getElementById('cc-notes').value };
+  await submit(cvcUrl, data, 'cc');
+}
+
+async function submitUtiNew() {
+  const ka = document.getElementById('un-ka').value.trim();
+  const tmima = document.getElementById('un-tmima').value;
+  const date = document.getElementById('un-date').value;
+  if (!ka || !tmima || !date) { showToast('Συμπλήρωσε τα υποχρεωτικά πεδία', 'error'); return; }
+  const data = { action: 'newUti', ka, tmima, placement: date, notes: document.getElementById('un-notes').value };
+  await submit(utiUrl, data, 'un');
+}
+
+async function submitUtiRemove() {
+  const date = document.getElementById('ur-date').value;
+  if (!date || !currentUtiRecord) { showToast('Επιλέξτε ημερομηνία', 'error'); return; }
+  const d1 = new Date(currentUtiRecord.placement || ''), d2 = new Date(date);
+  const days = Math.round((d2 - d1) / 86400000);
+  const data = { action: 'removeUti', ka: currentUtiRecord.ka, removal: date, days };
+  await submit(utiUrl, data, 'ur');
+}
+
+async function submitUtiCulture() {
+  const date = document.getElementById('uc-date').value;
+  const result = document.getElementById('uc-result').value.trim();
+  if (!date || !result) { showToast('Συμπλήρωσε τα υποχρεωτικά πεδία', 'error'); return; }
+  const data = { action: 'cultureUti', ka: currentUtiRecord.ka, tmima: currentUtiRecord.tmima, placement: currentUtiRecord.placement, removal: currentUtiRecord.removal, cultureDate: date, result, mdro: getBadgeVal('uc-mdro') };
+  await submit(utiUrl, data, 'uc');
+}
+
+async function submit(url, data, prefix) {
+  const btn = document.querySelector(`button[onclick*="submit${prefix.toUpperCase().replace('-','')}"], .btn-submit`);
+  try {
+    showToast('⏳ Αποθήκευση...', '');
+    const res = await callScript(url, data);
+    if (res.success) {
+      showToast('✅ Αποθηκεύτηκε!', 'success');
+      resetForm(prefix);
+    } else {
+      showToast('❌ Σφάλμα: ' + (res.error || 'Άγνωστο'), 'error');
+    }
+  } catch(e) {
+    showToast('❌ Σφάλμα σύνδεσης', 'error');
+  }
+}
+
+function resetForm(prefix) {
+  const ids = { 'cn': ['cn-ka','cn-date','cn-notes'], 'un': ['un-ka','un-date','un-notes'], 'cr': ['cr-ka','cr-date'], 'ur': ['ur-ka','ur-date'], 'cc': ['cc-ka','cc-date','cc-result','cc-notes'], 'uc': ['uc-ka','uc-date','uc-result',] };
+  (ids[prefix] || []).forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.querySelectorAll('.badge.sel-blue, .badge.sel-green').forEach(b => b.classList.remove('sel-blue','sel-green'));
+  ['cr-preview','cc-preview','ur-preview','uc-preview'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('visible'); });
+  ['cr-form','cc-form','ur-form','uc-form'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  ['cr-submit','cc-submit','ur-submit','uc-submit'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  ['cr-days','ur-days'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  ['cr-notfound','cc-notfound','ur-notfound','uc-notfound'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.remove('visible'); });
+  const today = new Date().toISOString().split('T')[0];
+  ['cn-date','un-date','cr-date','ur-date','cc-date','uc-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; });
+  if (prefix.startsWith('c')) currentCvcRecord = null;
+  else currentUtiRecord = null;
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+
+async function searchEdit() {
+  const ka = document.getElementById('edit-ka').value.trim();
+  if (!ka) { showToast('Εισάγετε ΚΑ', 'error'); return; }
+  const type = getBadgeVal('edit-type') || 'cvc';
+  const url = type === 'cvc' ? cvcUrl : utiUrl;
+  document.getElementById('edit-loading').classList.add('visible');
+  document.getElementById('edit-notfound').classList.remove('visible');
+  document.getElementById('edit-rows-container').innerHTML = '';
+  try {
+    const res = await callScript(url, { action: 'getAll', ka });
+    document.getElementById('edit-loading').classList.remove('visible');
+    if (!res.found || !res.rows || res.rows.length === 0) {
+      document.getElementById('edit-notfound').classList.add('visible');
+      return;
+    }
+    const container = document.getElementById('edit-rows-container');
+    res.rows.forEach(function(row, idx) {
+      const card = document.createElement('div');
+      card.className = 'row-entry';
+      let h = '<div style="font-size:10px;font-weight:600;color:var(--text-hint);margin-bottom:8px">ΕΓΓΡΑΦΗ #' + (idx+1) + ' — ΓΡΑΜΜΗ ' + row.rowIndex + '</div>';
+      h += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text-secondary)">Τμήμα</span><span>' + (row.tmima||'—') + '</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text-secondary)">Τοποθέτηση</span><span>' + (row.placement||'—') + '</span></div>';
+      h += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text-secondary)">Αφαίρεση</span><span>' + (row.removal||'Ανοιχτό') + '</span></div>';
+      if (row.eidos) h += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text-secondary)">Είδος</span><span>' + row.eidos + '</span></div>';
+      if (row.cultResult) h += '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:var(--text-secondary)">Καλλιέργεια</span><span>' + row.cultResult + '</span></div>';
+      h += '<button onclick="deleteRow(\'' + type + '\',' + row.rowIndex + ')" style="width:100%;padding:8px;background:var(--red);color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px">Διαγραφη γραμμης</button>';
+      card.innerHTML = h;
+      container.appendChild(card);
+    });
+  } catch(e) {
+    document.getElementById('edit-loading').classList.remove('visible');
+    showToast('Σφάλμα σύνδεσης', 'error');
+  }
+}
+
+async function deleteRow(type, rowIndex) {
+  if (!confirm('Σίγουρα θέλεις να διαγράψεις αυτή τη γραμμή;')) return;
+  const url = type === 'cvc' ? cvcUrl : utiUrl;
+  try {
+    const res = await callScript(url, { action: 'deleteRow', rowIndex });
+    if (res.success) { showToast('✅ Διαγράφηκε!', 'success'); searchEdit(); }
+    else showToast('❌ ' + (res.error||'Σφάλμα'), 'error');
+  } catch(e) { showToast('Σφάλμα σύνδεσης', 'error'); }
+}
+
+async function checkDuplicate() {
+  const ka = document.getElementById('check-ka').value.trim();
+  if (!ka) { showToast('Εισάγετε ΚΑ', 'error'); return; }
+  const type = getBadgeVal('check-type') || 'cvc';
+  const url = type === 'cvc' ? cvcUrl : utiUrl;
+  document.getElementById('check-loading').classList.add('visible');
+  document.getElementById('check-result').innerHTML = '';
+  try {
+    const res = await callScript(url, { action: 'search', ka });
+    document.getElementById('check-loading').classList.remove('visible');
+    const d = document.getElementById('check-result');
+    if (res.found) {
+      const r = res.record;
+      var warnHtml = '<div style="background:var(--amber-light);border:1px solid var(--amber-mid);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;font-weight:600;color:var(--amber)">&#9888; Βρεθηκε ηδη καταχωρηση!';
+      warnHtml += '<div style="font-weight:400;margin-top:6px">Τμημα: ' + (r.tmima||'-') + ' &middot; Τοποθετηση: ' + (r.placement||'-') + ' &middot; Αφαιρεση: ' + (r.removal||'Ανοιχτο') + '</div></div>';
+      d.innerHTML = warnHtml;
+    } else {
+      d.innerHTML = '<div style="background:var(--green-light);border:1px solid var(--green-mid);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;font-weight:600;color:var(--green)">OK! Δεν βρεθηκε — μπορεις να προχωρησεις!</div>';
+    }
+  } catch(e) {
+    document.getElementById('check-loading').classList.remove('visible');
+    showToast('Σφάλμα σύνδεσης', 'error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
